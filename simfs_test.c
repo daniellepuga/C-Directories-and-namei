@@ -9,6 +9,7 @@
 #include "mkfs.h"
 #include "pack.h"
 #include "directory.h"
+#include "ls.h"
 
 // macros
 #define FREE_BLOCK_MAP_NUM 2
@@ -291,6 +292,71 @@ void test_directory_failures(void)
 	image_close();
 }
 
+void test_ls(void)
+{
+	image_open("test_image", 0);
+	mkfs();
+	printf("\nls\n");
+	ls(0);
+	image_close();
+}
+
+void test_namei(void)
+{
+	unsigned int root_inode = 0;
+	image_open("test_image", 0);
+	mkfs();
+	// namei returns root node
+	struct inode *in = namei("/");
+	CTEST_ASSERT(in->inode_num == root_inode, "test namei returns root inode");
+	image_close();
+}
+
+void test_directory_make_failures(void)
+{
+	image_open("test_image", 0);
+	mkfs();
+	int directory_make_status = directory_make("/foo/");
+	CTEST_ASSERT(directory_make_status == -1, "testing directory path invalid names");
+	directory_make_status = directory_make("foo");
+	CTEST_ASSERT(directory_make_status == -1, "testing directory path invalid names");
+	// block map as a backup
+	unsigned char original_state[BLOCK_SIZE];
+	bread(FREE_BLOCK_MAP_NUM, original_state);
+	unsigned char test_block[BLOCK_SIZE];
+	memset(test_block, ONLY_ONE, BLOCK_SIZE);
+
+	bwrite(FREE_BLOCK_MAP_NUM, test_block);
+	directory_make_status = directory_make("/baz");
+	CTEST_ASSERT(directory_make_status == -1, "testing no data blocks should lead to failure");
+	bwrite(FREE_BLOCK_MAP_NUM, original_state);
+
+	bread(1, original_state);
+	bwrite(1, test_block);
+	directory_make_status = directory_make("/baz");
+	CTEST_ASSERT(directory_make_status == -1, "testing no inode blocks lead to failure");
+
+	image_close();
+}
+
+void test_directory_make_success(void)
+{
+	unsigned int test_inode_num = 1;
+	image_open("test_image", 0);
+	mkfs();
+	int directory_creation_status = directory_make("/foo");
+	CTEST_ASSERT(directory_creation_status == 0, "testing directory creation returns 0 on success");
+	
+	struct directory *dir = directory_open(test_inode_num);
+	struct directory_entry *ent = malloc(sizeof(struct directory_entry));
+	directory_get(dir, ent);
+	CTEST_ASSERT(strcmp(ent->name, ".") == 0, "testing return 0");
+	CTEST_ASSERT(ent->inode_num == test_inode_num, "testing retrieved directory entry is the same as inode number from directory make");
+
+	directory_make("/foo/bar");
+	image_close();
+}
+
 int main(void)
 {
     CTEST_VERBOSE(1);
@@ -306,6 +372,10 @@ int main(void)
 	// test_iput();
 	test_directory();
 	test_directory_failures();
+	test_namei();
+	test_directory_make_failures();
+	test_directory_make_success();
+	test_ls();
 
     CTEST_RESULTS();
     CTEST_COLOR(1);

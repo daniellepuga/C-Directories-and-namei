@@ -194,3 +194,9 @@ struct inode *ialloc(void){
 	    }
 	}
 }
+
+struct inode *namei(char *path)
+{
+	(void) path; 
+	return iget(ROOT_INODE_NUM);
+}

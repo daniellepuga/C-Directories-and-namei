@@ -18,6 +18,8 @@
 #define LINK_COUNT_OFFSET 8
 #define BLOCK_POINTER_OFFSET 9
 
+#define ROOT_INODE_NUM 0
+
 
 struct inode {
     unsigned int size;
@@ -43,5 +45,6 @@ void mark_incore_in_use(void);
 struct inode *iget(int inode_num);
 void iput(struct inode *in);
 struct inode *ialloc(void);
+struct inode *namei(char *path);
 
 #endif

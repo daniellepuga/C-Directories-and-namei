@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "block.h"
 #include "image.h"
+#include "free.h"
 
 
 // helper function to check block position
