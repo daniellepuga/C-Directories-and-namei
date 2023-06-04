@@ -34,4 +34,4 @@ test: simfs_test
 	./simfs_test
 
 clean:
-	rm -f simfs_test test_image
+	rm  *.o -f simfs_test test_image image simfs.a
